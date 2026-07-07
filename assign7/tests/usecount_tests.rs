@@ -4,7 +4,6 @@ use lib::executor::*;
 use lib::future::*;
 use std::sync::{Mutex, Arc};
 
-/* UNCOMMENT BELOW TO RUN TESTS
 #[test]
 fn usecount_basic() {
   let mut uc: UseCounter<i32> = UseCounter::new(1);
@@ -38,4 +37,3 @@ fn usecount_future() {
   assert!(uc.count() == 2);
   assert!(*n == 2);
 }
-END */

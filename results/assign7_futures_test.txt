@@ -1,0 +1,17 @@
+     Running unittests src\lib.rs (target\debug\deps\lib-ccaa0847268c42a8.exe)
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests\asyncio_test.rs (target\debug\deps\asyncio_test-67f2f3064bba83c7.exe)
+running 4 tests
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests\executors_test.rs (target\debug\deps\executors_test-5b0afb6a38d389dc.exe)
+running 14 tests
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests\futures_test.rs (target\debug\deps\futures_test-893e7844949a2506.exe)
+running 7 tests
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests\usecount_tests.rs (target\debug\deps\usecount_tests-babc535aef7769f6.exe)
+running 2 tests
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
