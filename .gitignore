@@ -1,0 +1,39 @@
+# OS
+.DS_Store
+
+# OCaml / ocamlbuild
+_build/
+*.native
+*.byte
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.annot
+*.merlin.log
+
+# Course-provided prebuilt binaries (large; kept locally for verification only)
+assign4/reference.byte
+assign6/program/ocaml/main.native
+assign2/program/lci_linux
+assign2/program/lci_macos
+assign2/program/lci_win.exe
+
+# Rust
+target/
+
+# Node (wasm assignments)
+node_modules/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.pdf
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+# Submission archives
+*.zip
+submission/
