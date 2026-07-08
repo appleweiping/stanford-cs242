@@ -37,3 +37,7 @@ node_modules/
 # Submission archives
 *.zip
 submission/
+
+# Local build/verify helper scripts (WSL-specific, not part of the assignment)
+_wsl_*.sh
+_*.log

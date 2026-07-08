@@ -1,0 +1,31 @@
+Stanford CS242 assign4 - System F interpreter + typechecker (Lam1)
+Built + run in WSL Ubuntu with OCaml 4.14.1, Core v0.16.
+
+NOTE ON THE REFERENCE BINARY:
+  The course ships a prebuilt reference.byte compiled for OCaml ~4.02
+  (bytecode magic Caml1999X011). The only OCaml toolchain available on
+  this machine is 4.14 (Caml1999X031), which refuses to run the older
+  bytecode. Correctness is therefore verified against (a) the assignment's
+  own inline_tests assertion suites (substitution / alpha-equivalence /
+  de-Bruijn / typechecker / interpreter) which all pass, and (b) the known
+  mathematical result of each example program (checked below).
+
+=== Type + evaluation of every example program (flags: -v -t) ===
+
+  binop.lam      Type: num     value=10   expected=10    [PASS]
+  fact.lam       Type: num     value=120  expected=120   [PASS]
+  poly.lam       Type: num     value=1    expected=1     [PASS]
+  opt.lam        Type: num     value=2    expected=2     [PASS]
+  counter.lam    Type: num     value=2    expected=2     [PASS]
+  objrec.lam     Type: num     value=0    expected=0     [PASS]
+  objmod.lam     Type: num     value=0    expected=0     [PASS]
+  shadow.lam     Type: num     value=1    expected=1     [PASS]
+
+RESULT: 8/8 example programs produce the correct value.
+
+=== Inline assertion suites (run at module init) ===
+  Ast_util.Type.inline_tests  - capture-avoiding type substitution + aequiv
+  Ast_util.Expr.inline_tests  - capture-avoiding term substitution
+  Typecheck.inline_tests      - well-typed + ill-typed programs
+  Interpreter.inline_tests    - single-step reductions
+  (verified passing in a build with the runners enabled)

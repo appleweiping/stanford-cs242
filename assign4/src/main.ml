@@ -1,4 +1,4 @@
-open Flags
+open Lam_flags
 open Core
 open Result.Monad_infix
 open Ast
@@ -34,6 +34,7 @@ let main () =
         set_testing testing;
         run filepath
     ]
-  |> Command.run
+  (* Core v0.16 moved Command.run into the Command_unix module. *)
+  |> Command_unix.run
 
 let () = main ()
