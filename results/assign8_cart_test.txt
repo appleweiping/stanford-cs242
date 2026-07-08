@@ -1,0 +1,33 @@
+Stanford CS242 assign8 - Typestate shopping cart (Rust, session/typestate types)
+Built + run in WSL Ubuntu, cargo/rustc 1.96.1.
+
+The `Cart<S>` struct is parameterized by a phantom state marker (Empty /
+NonEmpty / Checkout). Each state exposes only the operations legal in it, so
+illegal transitions (e.g. checking out an empty cart) are rejected by the type
+checker at COMPILE time, not at run time. The `cart_fail` test uses `trybuild`
+to assert that a program which calls `.checkout()` on a `Cart<Empty>` fails to
+compile with exactly:
+
+    error[E0599]: no method named `checkout` found for struct
+                  `Cart<Empty>` in the current scope
+      = note: the method was found for `Cart<NonEmpty>`
+
+=== cargo test (tests/cart.rs) ===
+     Running tests/cart.rs
+running 8 tests
+test order_err_test ... ok        (order fails -> keep Checkout cart, retry)
+test checkout_test ... ok         (NonEmpty -> Checkout)
+test additem_test ... ok          (Empty -> NonEmpty on first item)
+test additem_twice_test ... ok    (NonEmpty -> NonEmpty)
+test order_ok_test ... ok         (Checkout -> Empty on success)
+test cancel_test ... ok           (Checkout -> NonEmpty)
+test auth_test ... ok             (login -> Cart<Empty>)
+test cart_fail ... ok             (trybuild: .checkout() on Empty is REJECTED)
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out.
+
+RESULT: 8/8 tests pass, including the compile-fail typestate-safety test.
+
+Note: the optional section-2 session-typed TCP module (src/tcp.rs) is left as
+the course ships it (still `unimplemented!()`, and `pub mod tcp;` is commented
+out in lib.rs). The graded section-1 deliverable is the typestate cart above.
