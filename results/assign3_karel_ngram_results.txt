@@ -1,0 +1,76 @@
+Stanford CS242 assign3 - Karel robot + NGraml (OCaml / Core)
+Built + run in WSL Ubuntu, OCaml 4.14.1, Core v0.16.
+Inline asserts (remove_last x2, compute_ngrams, ngram_map_add) pass at module load.
+
+############ KAREL - Problem 1 (navigate + PickBeeper) ############
+Initial state:
+.......
+.WWWWW.
+.W>..W.
+.W....B
+.WWWWW.
+.......
+
+Final state:
+.......
+.WWWWW.
+.W>..W.
+.W.....
+.WWWWW.
+.......
+
+############ KAREL - Problem 3 (checkerboard, arbitrary m x n) ############
+Rule: beeper on every cell with (i+j) even. Verified on several sizes:
+
+----- 6 wide x 6 tall -----
+Final state:
+B.B.B.
+.B.B.B
+B.B.B.
+.B.B.B
+B.B.B.
+vB.B.B
+
+----- 5 wide x 5 tall -----
+Final state:
+B.B.B
+.B.B.
+B.B.B
+.B.B.
+v.B.B
+
+----- 7 wide x 3 tall -----
+Final state:
+B.B
+.B.
+B.B
+.B.
+B.B
+.B.
+v.B
+
+----- 1 wide x 1 tall -----
+Final state:
+v
+
+----- 8 wide x 4 tall -----
+Final state:
+B.B.
+.B.B
+B.B.
+.B.B
+B.B.
+.B.B
+B.B.
+vB.B
+
+############ NGRAML - Markov text generation ############
+
+----- hamlet.txt, ngram=3, nwords=25 -----
+with the King, As England was his faithful tributary, As love between them like the kind life-rend'ring pelican, Repast them with my blood. King. Why,
+
+----- hamlet.txt, ngram=2, nwords=20 -----
+as, to double vouchers, his head upon this goodly king. Polonius, Ophelia, Do it, as 'twere- I have kept the
+
+----- hott.txt, ngram=3, nwords=20 -----
+the most part, one does not have all the consequences of the next edition.
