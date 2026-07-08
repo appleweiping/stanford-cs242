@@ -1,0 +1,87 @@
+assign2 - untyped lambda calculus (Church encodings), run with bundled lci interpreter
+lci assign1 
+date: 2026-07-08T23:51:32Z
+
+======== even.lam ========
+--- source ---
+z = fun f -> fun x -> x
+s = fun n -> fun f -> fun x -> f (n f x)
+true = fun a -> fun b -> a
+false = fun a -> fun b -> b
+not = fun p -> fun a -> fun b -> p b a
+even = fun n -> n not true
+
+booltonum = fun b -> b (s z) z
+
+booltonum (even z)
+booltonum (even (s z))
+booltonum (even (s (s z)))
+booltonum (even (s (s (s z))))
+
+booltonum (even (s (s (s (s (s (s (s (s z)))))))))
+--- lci output ---
+Value on line 8: 1
+Value on line 9: 0
+Value on line 10: 1
+Value on line 11: 0
+Value on line 12: 1
+
+======== mult.lam ========
+--- source ---
+z = fun f -> fun x -> x
+s = fun n -> fun f -> fun x -> f (n f x)
+plus = fun m -> fun n -> m s n
+mult = fun m -> fun n -> fun f -> m (n f)
+
+mult z z
+mult (s z) (s z)
+mult (s z) (s (s z))
+mult (s z) (s (s (s z)))
+mult (s (s z)) (s (s (s z)))
+mult z (s (s (s z)))
+mult (s (s z)) (mult (s (s z)) (s (s z)))
+
+ten = (s (s (s (s (s (s (s (s (s (s z))))))))))
+mult ten ten
+--- lci output ---
+Value on line 5: 0
+Value on line 6: 1
+Value on line 7: 2
+Value on line 8: 3
+Value on line 9: 6
+Value on line 10: 0
+Value on line 11: 8
+Value on line 13: 100
+
+======== sum.lam ========
+--- source ---
+z = fun f -> fun x -> x
+s = fun n -> fun f -> fun x -> f (n f x)
+pred = fun n -> fun f -> fun x -> n (fun g -> fun h -> h (g f)) (fun u -> x) (fun u -> u)
+
+plus = fun m -> fun n -> n s m
+
+true = fun a -> fun b -> a
+false = fun a -> fun b -> b
+if = fun p -> fun a -> fun b -> p a b
+
+fix = fun f -> (fun x -> f (x x)) (fun x -> f (x x))
+
+iszero = fun n -> n (fun x -> false) true
+sum = fix (fun self -> fun n -> if (iszero n) z (plus n (self (pred n))))
+
+sum z
+sum (s z)
+sum (s (s z))
+
+sum (s (s (s (s (s z)))))
+
+sum (s (s (s (s (s (s (s (s (s (s z))))))))))
+--- lci output ---
+Value on line 11: 0
+Value on line 12: 1
+Value on line 13: 3
+Value on line 14: 15
+Value on line 15: 55
+
+Expected: even -> 1 0 1 0 1 ; mult -> 0 1 2 3 6 0 8 100 ; sum(0,1,2,5,10) -> 0 1 3 15 55

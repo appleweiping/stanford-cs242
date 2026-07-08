@@ -40,4 +40,5 @@ submission/
 
 # Local build/verify helper scripts (WSL-specific, not part of the assignment)
 _wsl_*.sh
+_probe*.sh
 _*.log
