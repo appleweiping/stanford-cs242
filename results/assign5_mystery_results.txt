@@ -1,3 +1,8 @@
+assign5 - WebAssembly mystery() (Collatz total stopping-time counter)
+toolchain: wat2wasm 1.0.34 / node v18.19.1
+date: 2026-07-09T00:09:48Z
+
+--- src/mystery.wat ---
 (module
   (func $mystery (param $n i32) (result i32)
     ;; Reimplementation of the given x86 `mystery` (asm/mystery.s): count the
@@ -30,3 +35,12 @@
     (local.get $count))
   (export "mystery" (func $mystery))
   )
+
+--- node run_tests_node.js (compiles WAT with wabt, runs the 5 cases from src/tests.js) ---
+PASS: mystery(1) = 1 (expected 1)
+PASS: mystery(3) = 8 (expected 8)
+PASS: mystery(12) = 10 (expected 10)
+PASS: mystery(100) = 26 (expected 26)
+PASS: mystery(1000) = 112 (expected 112)
+
+5/5 tests passed
