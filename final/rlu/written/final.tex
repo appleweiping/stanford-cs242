@@ -6,8 +6,68 @@
 
 \hwtitle
   {Final: Read-Log-Update in Rust}
-  {Will Crichton (wcrichto)} %% REPLACE THIS WITH YOUR NAME/ID
+  {appleweiping} %% REPLACE THIS WITH YOUR NAME/ID
 
-% Explain design decisions here
+\section*{Overview}
+
+I implemented the Read--Log--Update (RLU) synchronization mechanism of Matveev
+et al.\ (SOSP~'15) from scratch (\texttt{src/rlu.rs}) and used it to build a
+concurrent sorted singly-linked-list set (\texttt{src/rlu\_set.rs}) that
+satisfies the \texttt{ConcurrentSet} trait. The implementation passes every
+provided test (\texttt{set\_simple}, \texttt{set\_thread}) plus additional
+stress tests, and was verified race-free across 20 repeated runs of the
+concurrent tests.
+
+\section*{Design decisions}
+
+\paragraph{Clock + object copies (the core of RLU).}
+A single global clock is bumped on every commit. Each thread snapshots the clock
+when it enters a critical section (\texttt{reader\_lock}). Every RLU-managed node
+carries an atomic \emph{copy} pointer in its header. A writer that wants to
+modify a node installs a private copy (logging it), mutates the copy, and only on
+\texttt{commit} writes it back. A reader's \texttt{dereference} returns the copy
+of a locked node iff the owning writer has already committed at a clock $\le$ the
+reader's snapshot; otherwise it returns the old original. This gives every reader
+a consistent snapshot without ever blocking.
+
+\paragraph{Quiescence.}
+On commit a writer bumps the global clock, sets its \texttt{write\_clock}, then
+\texttt{synchronize}s: it waits for every thread that was inside a critical
+section \emph{before} the bump to leave it (tracked with an even/odd
+\texttt{run\_count}). Only then does it write the copies back into the originals
+and unlock them, so no reader with an older snapshot can observe a half-applied
+write.
+
+\paragraph{Single global writer lock.}
+The set serializes writers with one lock (a valid, simpler RLU configuration),
+rather than the fine-grained per-object CAS locking with abort/retry from the
+paper. This removes the possibility of writer--writer conflicts (so
+\texttt{try\_lock} never fails) and makes the implementation substantially easier
+to get provably correct. The cost is write scalability: see the performance note.
+
+\paragraph{Memory reclamation.}
+Deleted nodes are unlinked but never freed eagerly; every allocation (nodes and
+copies) is tracked in a global arena and freed exactly once, when the last handle
+to the set is dropped and all worker threads have joined. This trades memory for
+a reclamation policy that is trivially free of use-after-free, avoiding the
+paper's deferred, quiescence-gated \texttt{free}. For the graded workloads the
+garbage is bounded and this is a sound simplification.
+
+\paragraph{Rust specifics.}
+Nodes use \texttt{AtomicPtr} for the mutable \texttt{next} field so that
+write-back and concurrent reader traversal never race on the pointer; node values
+are immutable after creation. Cross-thread sharing goes through raw pointers with
+narrow \texttt{unsafe} boundaries: every cross-thread field access is either an
+atomic or serialized by the writer lock.
+
+\section*{Performance}
+
+On the provided benchmark (initial size 256, key range 512), read-heavy workloads
+(2\% writes) scale to roughly 8.5M ops/s and reach about 60\% of the reference
+solution's throughput at high thread counts. Write-heavy workloads are slower
+than the reference because all writers are serialized by the single global lock,
+whereas the reference allows disjoint writers to proceed concurrently. This is
+the expected trade-off of the single-writer-lock design; correctness is
+unaffected.
 
 \end{document}

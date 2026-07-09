@@ -1,0 +1,86 @@
+final (rlu) - Read-Log-Update synchronization + concurrent sorted linked-list set (Rust)
+date: 2026-07-09T01:05:05Z   rustc/cargo: cargo 1.96.1 (356927216 2026-06-26)
+
+############ correctness: cargo test ############
+     Running unittests src/lib.rs (target/debug/deps/rlu-5056521d1cdf9d31)
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src/bin/bench.rs (target/debug/deps/bench-ac914b4c445c1d92)
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/rlu.rs (target/debug/deps/rlu-762225d8d3526060)
+running 2 tests
+test rlu_basic ... ok
+test rlu_concurrent_partitioned ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+     Running tests/set.rs (target/debug/deps/set-1fb30d35863be391)
+running 2 tests
+test set_simple ... ok
+test set_thread ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+############ concurrency stress: 20x set_thread + rlu_concurrent_partitioned = 0 failures (see session log) ############
+
+############ throughput benchmark (release, t=1000ms/config, n=1) ############
+--- my RluSet (student_rlu.csv) ---
+write_frac,num_threads,throughput
+0.02,1,3119436
+0.02,2,6239683
+0.02,3,8043050
+0.02,4,8477674
+0.02,5,7974630
+0.02,6,6788052
+0.02,7,7804273
+0.02,8,7279119
+0.2,1,1314777
+0.2,2,2484257
+0.2,3,2220372
+0.2,4,1836331
+0.2,5,1502454
+0.2,6,1365969
+0.2,7,1071951
+0.2,8,1017437
+0.4,1,2051667
+0.4,2,1586372
+0.4,3,536221
+0.4,4,424984
+0.4,5,496006
+0.4,6,509565
+0.4,7,449591
+0.4,8,373272
+
+--- reference solution (bench_linux, ref_rlu.csv) ---
+write_frac,num_threads,throughput
+0.02,1,1877806
+0.02,2,3747419
+0.02,3,6361386
+0.02,4,8437472
+0.02,5,10285779
+0.02,6,12255251
+0.02,7,13152775
+0.02,8,14200316
+0.2,1,2753730
+0.2,2,5146094
+0.2,3,5615534
+0.2,4,6057068
+0.2,5,6691637
+0.2,6,7645792
+0.2,7,8550894
+0.2,8,8420319
+0.4,1,2582016
+0.4,2,4215924
+0.4,3,4991911
+0.4,4,5040076
+0.4,5,5166610
+0.4,6,5404786
+0.4,7,5016131
+0.4,8,3023765
+
+grade.py (student vs reference): performance grade = 50/100 on this short run.
+Read-heavy (write_frac 0.02) scales to ~8.5M ops/s (~60% of reference at high
+thread counts); write-heavy is lower because this implementation uses a single
+global writer lock (serialized writers) rather than the reference's fine-grained
+per-object locking. Correctness (all cargo tests + benchmark under overlapping
+keys) is unaffected.
