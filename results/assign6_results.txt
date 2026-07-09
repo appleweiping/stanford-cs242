@@ -1,0 +1,31 @@
+assign6 - Linear Types: Rust BinaryTree + SLang->WebAssembly compiler
+date: 2026-07-09T00:30:49Z
+
+############ PART 1: Rust BinaryTree (cargo test) ############
+running 8 tests
+test test::insertion_test ... ok
+test test::len_test ... ok
+test test::rebalance1_test ... ok
+test test::rebalance2_test ... ok
+test test::rebalance3_test ... ok
+test test::search_test ... ok
+test test::sorted_test ... ok
+test test::to_vec_test ... ok
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+############ PART 2: OCaml SLang typechecker + translator ############
+Wrote program `basic` to path ../wasm/src/basic.wat
+Wrote program `concat` to path ../wasm/src/concat.wat
+Wrote program `funcall` to path ../wasm/src/funcall.wat
+Program `overused_var` failed to type check: Variable x is undefined or moved
+Program `unused_var` failed to type check: Variable(s) never used (would leak): x
+Program `undeclared_var` failed to type check: Variable y is undefined or moved
+
+############ PART 3: generated WASM run headlessly (basic/concat/funcall) ############
+PASS: test_basic -> "basic"
+PASS: test_concat -> "hello world"
+PASS: test_funcall -> "hello world"
+
+3/3 tests passed

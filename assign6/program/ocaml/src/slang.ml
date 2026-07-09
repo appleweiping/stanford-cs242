@@ -15,51 +15,64 @@ type func = {name: string; params: string list; body: stmt list}
 
 type prog = func list
 
+(* SLang has *affine* variables: every string is a heap buffer that is owned by
+   exactly one variable. Using a variable ([Var x]) *moves* it -- it consumes the
+   buffer (the codegen frees / hands off ownership), so the variable is no longer
+   available. Type-checking therefore threads the set of *currently-owned*
+   variables through each expression and returns the set that survives.
+
+   - Using a variable that is not owned (never defined, or already moved) is an
+     error ("undefined or moved").
+   - A variable that is still owned at the end of a function body was never
+     consumed: its buffer would leak. That is also an error ("unused"). *)
 let rec typecheck_expr
           (fn_map : string list String.Map.t)
           (var_set : String.Set.t)
           (e : expr)
-  : (unit, string) Result.t =
+  : (String.Set.t, string) Result.t =
   let tc = typecheck_expr fn_map in
   match e with
-  | String _ -> Ok ()
+  | String _ -> Ok var_set
 
   | Concat (e1, e2) ->
-    tc var_set e1 >>= fun () -> tc var_set e2
+    (* left-to-right: e1 may move variables that e2 then cannot use *)
+    tc var_set e1 >>= fun var_set -> tc var_set e2
 
   | Var x ->
-    if String.Set.mem var_set x then
-      Ok ()
+    if Set.mem var_set x then
+      Ok (Set.remove var_set x) (* moved: x is consumed *)
     else
       Error (Printf.sprintf "Variable %s is undefined or moved" x)
 
   | Call (x, args) ->
-    List.fold args ~init:(Ok ())
-      ~f:(fun res arg ->
-        res >>= fun () -> tc var_set arg)
-    >>= fun () ->
-    (match String.Map.find fn_map x with
+    List.fold args ~init:(Ok var_set)
+      ~f:(fun res arg -> res >>= fun var_set -> tc var_set arg)
+    >>= fun var_set ->
+    (match Map.find fn_map x with
      | Some expected_args ->
-       if List.length expected_args = List.length args then Ok ()
+       if List.length expected_args = List.length args then Ok var_set
        else Error (Printf.sprintf
-                     "List was given %d parameters, expected %d parameters"
-                     (List.length expected_args) (List.length args))
+                     "Function %s was given %d parameters, expected %d parameters"
+                     x (List.length args) (List.length expected_args))
      | None -> Error (Printf.sprintf "Called undefined function %s" x))
 
 let typecheck_func (fn_map : string list String.Map.t) (f : func)
   : (unit, string) Result.t =
   List.fold f.body
-    ~init:((Ok (String.Set.of_list f.params)))
+    ~init:(Ok (String.Set.of_list f.params))
     ~f:(fun var_set_res s ->
       var_set_res >>= fun var_set ->
       (match s with
        | Assign (x, e) ->
          typecheck_expr fn_map var_set e
-         >>| fun () -> String.Set.add var_set x
+         >>| fun var_set -> Set.add var_set x
        | Return e ->
-         typecheck_expr fn_map var_set e
-         >>| fun () -> var_set))
-  >>| fun _ -> ()
+         typecheck_expr fn_map var_set e))
+  >>= fun leftover ->
+  if Set.is_empty leftover then Ok ()
+  else Error (Printf.sprintf
+                "Variable(s) never used (would leak): %s"
+                (String.concat ~sep:", " (Set.to_list leftover)))
 
 let typecheck (p : prog) : (unit, string) Result.t =
   let fn_map =

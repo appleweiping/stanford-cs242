@@ -1,0 +1,7 @@
+(module 
+  (import "wasm-alloc" "alloc" (func $alloc (param i32) (result i32)))
+  (import "wasm-alloc" "dealloc" (func $dealloc (param i32)))
+  (import "memcpy" "memcpy" (func $memcpy (param i32) (param i32) (param i32)))
+  (import "memcpy" "memory" (memory 0))
+  (global $length (mut i32) (i32.const 0))
+ (func $main  (result i32) (local $s i32) (local $cc_p1 i32) (local $cc_l1 i32) (local $cc_p2 i32) (local $cc_l2 i32) (local $cc_np i32) (local $store i32) (i32.const 5) (call $alloc) (set_local $s) (get_local $s) (i32.const 0) (i32.add) (i32.const 98) (set_local $store) (i32.const 4) (i32.mul) (get_local $store) (i32.store) (get_local $s) (i32.const 1) (i32.add) (i32.const 97) (set_local $store) (i32.const 4) (i32.mul) (get_local $store) (i32.store) (get_local $s) (i32.const 2) (i32.add) (i32.const 115) (set_local $store) (i32.const 4) (i32.mul) (get_local $store) (i32.store) (get_local $s) (i32.const 3) (i32.add) (i32.const 105) (set_local $store) (i32.const 4) (i32.mul) (get_local $store) (i32.store) (get_local $s) (i32.const 4) (i32.add) (i32.const 99) (set_local $store) (i32.const 4) (i32.mul) (get_local $store) (i32.store) (get_local $s) (i32.const 5) (set_global $length) (return)) (export "main" (func $main)))

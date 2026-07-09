@@ -7,29 +7,124 @@ pub enum BinaryTree<T> {
   Node(T, Box<BinaryTree<T>>, Box<BinaryTree<T>>)
 }
 
+use BinaryTree::{Leaf, Node};
+
+// Remove the right-most (in-order maximum) node from a non-empty tree and
+// return its value. The removed node has no right child, so it is spliced out
+// by replacing it with its own left subtree. No `T: Clone` needed -- values are
+// moved with `mem::replace`.
+fn remove_rightmost<T>(t: &mut BinaryTree<T>) -> T {
+  if let Node(_, _, right) = t {
+    if matches!(**right, Node(..)) {
+      return remove_rightmost(right);
+    }
+  }
+  match mem::replace(t, Leaf) {
+    Node(v, left, _leaf_right) => {
+      *t = *left; // splice the (right-most) node out, promoting its left subtree
+      v
+    }
+    Leaf => unreachable!("remove_rightmost called on an empty tree"),
+  }
+}
+
+// Mirror of `remove_rightmost`: remove the left-most (in-order minimum) node.
+fn remove_leftmost<T>(t: &mut BinaryTree<T>) -> T {
+  if let Node(_, left, _) = t {
+    if matches!(**left, Node(..)) {
+      return remove_leftmost(left);
+    }
+  }
+  match mem::replace(t, Leaf) {
+    Node(v, _leaf_left, right) => {
+      *t = *right;
+      v
+    }
+    Leaf => unreachable!("remove_leftmost called on an empty tree"),
+  }
+}
+
 impl<T: Debug + Display + PartialOrd> BinaryTree<T> {
   pub fn len(&self) -> usize {
-    unimplemented!()
+    match self {
+      Leaf => 0,
+      Node(_, l, r) => 1 + l.len() + r.len(),
+    }
   }
 
   pub fn to_vec(&self) -> Vec<&T> {
-    unimplemented!()
+    let mut acc = Vec::new();
+    self.inorder(&mut acc);
+    acc
+  }
+
+  fn inorder<'a>(&'a self, acc: &mut Vec<&'a T>) {
+    if let Node(x, l, r) = self {
+      l.inorder(acc);
+      acc.push(x);
+      r.inorder(acc);
+    }
   }
 
   pub fn sorted(&self) -> bool {
-    unimplemented!()
+    // A BST is sorted iff its in-order traversal is strictly increasing.
+    self.to_vec().windows(2).all(|w| w[0] < w[1])
   }
 
   pub fn insert(&mut self, t: T) {
-    unimplemented!()
+    match self {
+      Leaf => *self = Node(t, Box::new(Leaf), Box::new(Leaf)),
+      Node(v, l, r) => {
+        if t < *v {
+          l.insert(t)
+        } else if t > *v {
+          r.insert(t)
+        }
+        // t == *v: already present, set semantics -> ignore.
+      }
+    }
   }
 
+  // Return the least element that is >= `query` (ceiling / lower-bound search),
+  // or None if every element is strictly less than `query`.
   pub fn search(&self, query: &T) -> Option<&T> {
-    unimplemented!()
+    match self {
+      Leaf => None,
+      Node(v, l, r) => {
+        if v < query {
+          r.search(query) // v is too small; the answer (if any) is to the right
+        } else {
+          // v >= query is a candidate; a smaller valid candidate can only be
+          // in the left subtree (all of whose values are < v).
+          l.search(query).or(Some(v))
+        }
+      }
+    }
   }
 
+  // Move one element from deep in the tree up to the root, per the assignment:
+  // walk down the right spine of the left subtree, pull that (maximum) element
+  // up to become the new root, and demote the old root into the right subtree.
+  // When the left subtree is empty, do the mirror image on the right subtree.
+  // All surgery is done by moving sub-trees with `mem::replace` -- no cloning,
+  // because `T: Clone` is deliberately not a bound.
   pub fn rebalance(&mut self) {
-    unimplemented!()
+    let tree = mem::replace(self, Leaf);
+    *self = match tree {
+      Leaf => Leaf,
+      Node(v, mut l, r) => {
+        if matches!(*l, Node(..)) {
+          let m = remove_rightmost(&mut l);
+          Node(m, l, Box::new(Node(v, Box::new(Leaf), r)))
+        } else if matches!(*r, Node(..)) {
+          let mut r = r;
+          let m = remove_leftmost(&mut r);
+          Node(m, Box::new(Node(v, l, Box::new(Leaf))), r)
+        } else {
+          Node(v, l, r) // single node: nothing to do
+        }
+      }
+    };
   }
 
 

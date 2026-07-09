@@ -1,8 +1,9 @@
 open Core
 
-exception Unimplemented
-
-let runtime_locals = ["s"]
+(* "s" is the scratch pointer used when building a string literal; the "cc_*"
+   locals are scratch registers used by Concat (see [translate_expr]). None of
+   these can collide with a SLang variable, whose locals are [x] and [x ^ "len"]. *)
+let runtime_locals = ["s"; "cc_p1"; "cc_l1"; "cc_p2"; "cc_l2"; "cc_np"]
 
 let rec translate_expr (e : Slang.expr) : Wasm.instr list =
   let open Wasm in
@@ -22,8 +23,23 @@ let rec translate_expr (e : Slang.expr) : Wasm.instr list =
     [GetLocal "s"; Const n]
 
   | Slang.Concat (e1, e2) ->
-    (* Your solution goes here! *)
-    raise Unimplemented
+    (* Each operand leaves (ptr, len) on the stack. Concatenation:
+         1. stash (p1, l1) and (p2, l2) in scratch locals,
+         2. alloc a fresh buffer of l1 + l2 words,
+         3. memcpy operand 1 to [np ..], operand 2 to [np + l1 ..]
+            (the provided memcpy has argument order (src, dst, len)),
+         4. free (dealloc) the two operand buffers -- they have been moved and
+            must not leak,
+         5. leave (np, l1 + l2) on the stack. *)
+    translate_expr e1 @ [SetLocal "cc_l1"; SetLocal "cc_p1"]
+    @ translate_expr e2 @ [SetLocal "cc_l2"; SetLocal "cc_p2"]
+    @ [GetLocal "cc_l1"; GetLocal "cc_l2"; Binop `Add; Call "alloc"; SetLocal "cc_np"]
+    @ [GetLocal "cc_p1"; GetLocal "cc_np"; GetLocal "cc_l1"; Call "memcpy"]
+    @ [GetLocal "cc_p2";
+       GetLocal "cc_np"; GetLocal "cc_l1"; Binop `Add;
+       GetLocal "cc_l2"; Call "memcpy"]
+    @ [GetLocal "cc_p1"; Call "dealloc"; GetLocal "cc_p2"; Call "dealloc"]
+    @ [GetLocal "cc_np"; GetLocal "cc_l1"; GetLocal "cc_l2"; Binop `Add]
 
   | Slang.Call (x, es) ->
     (List.concat (List.map ~f:translate_expr es))
