@@ -1,0 +1,12 @@
+% Minimal compatibility stub: the course preamble (tex/defs.tex) loads
+% `tocstyle`, which was removed from TeX Live after 2020. This solution does not
+% use a table of contents, so a no-op shim is sufficient to compile on modern
+% TeX Live. (Not part of the assignment answer.)
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{tocstyle}[2023/01/01 v0 no-op tocstyle stub]
+\newcommand{\usetocstyle}[2][]{}
+\newcommand{\deactivatetocstyle}{}
+\newcommand{\reactivatetocstyle}{}
+\newcommand{\settocstylefeature}[3]{}
+\newcommand{\tocstyleset}[2]{}
+\endinput

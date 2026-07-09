@@ -1,0 +1,23 @@
+assign1 (written) - JSafe: JSON schemas, accessors, and the Accessor Safety proof
+date: 2026-07-09T01:11:19Z
+
+Deliverable: assign1/written/assign1.tex (complete LaTeX solution).
+
+Contents:
+ * Problem 1.1  syntax of properties p and schemas tau (bool, num<p>, str,
+                homogeneous array [tau], tuple <t0..>, object {s:tau,..}).
+ * Problem 1.2  number/property satisfaction (P-*) and the matching relation
+                j ~ tau (S-Bool-*, S-Num, S-Str, S-Arr, S-Tup, S-Obj).
+ * Problem 2.1  small-step accessor semantics (a,j) |-> (a',j'):
+                E-Key, E-Idx, E-Map.
+ * Problem 2.2  accessor validity tau |- a : tau' (V-Eps/Key/Idx/Map) and a
+                machine-checkable-style induction proof of Accessor Safety
+                (via a preservation-strengthened lemma).
+
+Compilation (pdflatex, TeX Live 2023, -shell-escape for the course's minted):
+pdfTeX 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian)
+  RESULT: assign1.pdf built OK (171870 bytes, 4 pages).
+
+Note: the course tex/defs.tex loads the 'tocstyle' package (removed from TeX
+Live after 2020); a small no-op tocstyle.sty compatibility stub is included so
+the file compiles on current TeX Live. It is not part of the answer.

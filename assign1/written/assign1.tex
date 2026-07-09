@@ -16,6 +16,12 @@
 \newcommand{\aidx}[2]{[#1]\,{#2}}        % \aidx{i}{a} = [i] a
 \newcommand{\apipe}[1]{\mid {#1}}        % \apipe{a} = | a
 
+% Solution-specific helpers
+\newcommand{\amap}[2]{[\,{#1}\,]\,{#2}}          % map accessor: [a] a'
+\newcommand{\tup}[1]{\langle {#1} \rangle}        % tuple schema <t0,...,tk>
+\newcommand{\sat}[2]{{#1} \vDash {#2}}            % number satisfies property: n |= p
+\newcommand{\valid}[3]{{#1} \vdash {#2} : {#3}}   % validity w/ result schema: t |- a : t'
+
 % Other useful syntax commands:
 %
 % \msf{x} = x (not italicised)
@@ -25,58 +31,254 @@
 % \tbool = bool
 % \tstr = str
 
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
 
 \begin{document}
 
 \hwtitle
-  {Assignment 1}
-  {Will Crichton (wcrichto)} %% REPLACE THIS WITH YOUR NAME/ID
+  {Assignment 1: JSafe}
+  {appleweiping} %% REPLACE THIS WITH YOUR NAME/ID
 
-\problem{Problem 1}
+We formalise a small typed query language over JSON. A \emph{schema} $\tau$
+describes a set of JSON documents; an \emph{accessor} $a$ is a path/query.
+The goal (Problem 2) is to prove that a well-typed accessor, run on any
+document matching the schema, always terminates with a result.
 
-Part 1:
+Throughout, $n,m$ range over (integer) numbers, $s$ over strings, $j$ over JSON
+values, and $\str{X}$ denotes zero-or-more repetitions of $X$. Objects are
+finite maps from distinct string keys to values; array/object element order is
+significant only where stated.
 
-\begin{alignat*}{1}
-\msf{Property}~p ::= \qamp \varepsilon \\
-\mid \qamp \ldots \\
-\\
-\msf{Schema}~\tau ::= \qamp \tnum \prop{p} \\
-\mid \qamp \ldots
+\problem{Problem 1: Schemas}
+
+\subsection*{Part 1: Syntax}
+
+\begin{alignat*}{2}
+\msf{JSON}~j ::= \qamp \truet \mid \falset \mid n \mid s
+  \mid \jarr{j_0, \ldots, j_{k-1}}
+  \mid \jobj{s_0 : j_0, \ldots, s_{k-1} : j_{k-1}} \\[0.4em]
+\msf{Property}~p ::= \qamp \aeps
+  \mid (\pgt{n})\,p
+  \mid (\plt{n})\,p
+  \mid (\peq{n})\,p \\[0.4em]
+\msf{Schema}~\tau ::= \qamp \tbool
+  \mid \tnum \prop{p}
+  \mid \tstr
+  \mid \jarr{\tau}
+  \mid \tup{\tau_0, \ldots, \tau_{k-1}}
+  \mid \jobj{s_0 : \tau_0, \ldots, s_{k-1} : \tau_{k-1}}
 \end{alignat*}
 
-Part 2:
+A property $p$ is a conjunction of numeric constraints. A number schema
+$\tnum\prop{p}$ matches numbers satisfying \emph{all} of them.  There are two
+array schemas: the \emph{homogeneous} array $\jarr{\tau}$ (any length, every
+element matches $\tau$) and the \emph{tuple} $\tup{\tau_0,\ldots,\tau_{k-1}}$
+(exactly $k$ elements, the $i$-th matching $\tau_i$).  An object schema fixes a
+set of keys and the schema of each.
 
-% mathpar is the environment for writing inference rules. It takes care of
-% the spacing and line breaks automatically. Use "\\" in the premises to
-% space out multiple assumptions.
+\subsection*{Part 2: Matching}
+
+We first define when a number satisfies a property, $\sat{n}{p}$
+(``$n$ satisfies every constraint in $p$''):
+
 \begin{mathpar}
+\ir{P-Emp}{\ }{\sat{n}{\aeps}}
 
+\ir{P-Gt}{n > m \\ \sat{n}{p}}{\sat{n}{(\pgt{m})\,p}}
+
+\ir{P-Lt}{n < m \\ \sat{n}{p}}{\sat{n}{(\plt{m})\,p}}
+
+\ir{P-Eq}{n = m \\ \sat{n}{p}}{\sat{n}{(\peq{m})\,p}}
+\end{mathpar}
+
+The matching judgment $\matches{j}{\tau}$ reads ``JSON value $j$ adheres to
+schema $\tau$'':
+
+\begin{mathpar}
 \ir{S-Bool-False}{\ }{\matches{\falset}{\tbool}}
 
 \ir{S-Bool-True}{\ }{\matches{\truet}{\tbool}}
 
-% Inference rules go here
+\ir{S-Num}{\sat{n}{p}}{\matches{n}{\tnum\prop{p}}}
 
+\ir{S-Str}{\ }{\matches{s}{\tstr}}
+
+\ir{S-Arr}
+  {\matches{j_i}{\tau} \quad (\text{for all } 0 \le i < k)}
+  {\matches{\jarr{j_0, \ldots, j_{k-1}}}{\jarr{\tau}}}
+
+\ir{S-Tup}
+  {\matches{j_i}{\tau_i} \quad (\text{for all } 0 \le i < k)}
+  {\matches{\jarr{j_0, \ldots, j_{k-1}}}{\tup{\tau_0, \ldots, \tau_{k-1}}}}
+
+\ir{S-Obj}
+  {\matches{j_i}{\tau_i} \quad (\text{for all } 0 \le i < k)}
+  {\matches{\jobj{s_0 : j_0, \ldots, s_{k-1} : j_{k-1}}}
+           {\jobj{s_0 : \tau_0, \ldots, s_{k-1} : \tau_{k-1}}}}
 \end{mathpar}
 
-\problem{Problem 2}
+(S-Arr allows any length; S-Tup requires the value to have exactly the $k$
+keys/indices of the tuple; S-Obj requires the same key set, matched pointwise.)
 
-Part 1:
+\problem{Problem 2: Accessors}
+
+\subsection*{Part 1: Operational semantics}
+
+An accessor is a path that consumes one document and produces one document:
+
+\begin{alignat*}{1}
+\msf{Accessor}~a ::= \qamp \aeps
+  \mid \akey{s}{a}
+  \mid \aidx{n}{a}
+  \mid \amap{a}{a}
+\end{alignat*}
+
+$\aeps$ is the identity (final) accessor; $\akey{s}{a}$ looks up key $s$ then
+continues with $a$; $\aidx{n}{a}$ indexes an array then continues; and
+$\amap{a_1}{a_2}$ (the bracket contains an \emph{accessor} $a_1$, not a numeral)
+maps $a_1$ over every element of an array and continues with $a_2$.
+
+A configuration is a pair $(a, j)$. The small-step relation
+$\steps{(a,j)}{(a',j')}$ (and its reflexive--transitive closure
+$\evals{(a,j)}{(a',j')}$) is:
 
 \begin{mathpar}
-% Inference rules go here
+\ir{E-Key}
+  {\ }
+  {\steps
+    {(\akey{s_i}{a},\ \jobj{s_0 : j_0, \ldots, s_{k-1} : j_{k-1}})}
+    {(a,\ j_i)}}
+
+\ir{E-Idx}
+  {0 \le n < k}
+  {\steps
+    {(\aidx{n}{a},\ \jarr{j_0, \ldots, j_{k-1}})}
+    {(a,\ j_n)}}
+
+\ir{E-Map}
+  {\evals{(a_1,\ j_i)}{(\aeps,\ j_i')} \quad (\text{for all } 0 \le i < k)}
+  {\steps
+    {(\amap{a_1}{a_2},\ \jarr{j_0, \ldots, j_{k-1}})}
+    {(a_2,\ \jarr{j_0', \ldots, j_{k-1}'})}}
 \end{mathpar}
 
-Part 2:
+A configuration $(\aeps, j)$ is \emph{final}: no rule applies, and it is the
+intended answer. E-Key fires only when $s_i$ is actually a key of the object;
+E-Idx only when the index is in bounds; E-Map runs the inner accessor $a_1$ to
+completion on each element (its premises are themselves multi-step evaluations)
+and rebuilds the array. (One may equivalently split E-Map into an empty-array
+base case and a one-element inductive step; we use the multi-step form for
+brevity.)
+
+\subsection*{Part 2: Validity, and the Accessor Safety theorem}
+
+Not every accessor makes sense on every schema: $\akey{s}{a}$ needs $s$ to be a
+key, $\aidx{n}{a}$ needs the array to have $> n$ elements, and $\amap{a_1}{a_2}$
+needs $a_1$ to be valid on the element schema. We therefore give a
+\emph{validity} judgment that also records the schema of the result,
+$\valid{\tau}{a}{\tau'}$, read ``accessor $a$ is valid on a document of schema
+$\tau$ and yields a document of schema $\tau'$'':
 
 \begin{mathpar}
-% Inference rules go here
+\ir{V-Eps}
+  {\ }
+  {\valid{\tau}{\aeps}{\tau}}
+
+\ir{V-Key}
+  {\valid{\tau_i}{a}{\tau'}}
+  {\valid{\jobj{s_0 : \tau_0, \ldots, s_{k-1} : \tau_{k-1}}}{\akey{s_i}{a}}{\tau'}}
+
+\ir{V-Idx}
+  {0 \le n < k \\ \valid{\tau_n}{a}{\tau'}}
+  {\valid{\tup{\tau_0, \ldots, \tau_{k-1}}}{\aidx{n}{a}}{\tau'}}
+
+\ir{V-Map}
+  {\valid{\tau}{a_1}{\tau_1} \\ \valid{\jarr{\tau_1}}{a_2}{\tau'}}
+  {\valid{\jarr{\tau}}{\amap{a_1}{a_2}}{\tau'}}
 \end{mathpar}
 
-\textit{Accessor safety}: for all $a, j, \tau$, if $\matches{a}{\tau}$ and $\matches{j}{\tau}$, then there exists a $j'$ such that $\evals{(a, j)}{\aeps, j'}$.
+We write $\matches{a}{\tau}$ (``$a$ is valid on $\tau$'') to mean that
+$\valid{\tau}{a}{\tau'}$ holds for some result schema $\tau'$.
+
+\begin{theorem}[Accessor Safety]
+For all $a$, $j$, $\tau$: if $\matches{a}{\tau}$ and $\matches{j}{\tau}$, then
+there exists $j'$ such that $\evals{(a, j)}{(\aeps, j')}$.
+\end{theorem}
+
+We prove a slightly stronger statement, which additionally tracks the schema of
+the output. Accessor Safety is the special case obtained by forgetting the last
+conjunct.
+
+\begin{lemma}[Safety with preservation]
+\label{lem:safe}
+If $\valid{\tau}{a}{\tau'}$ and $\matches{j}{\tau}$, then there exists $j'$ such
+that $\evals{(a, j)}{(\aeps, j')}$ and $\matches{j'}{\tau'}$.
+\end{lemma}
 
 \begin{proof}
-% Proof goes here.
+By (structural) rule induction on the derivation $\mathcal{D}$ of
+$\valid{\tau}{a}{\tau'}$. In each case we do case analysis on the last rule of
+$\mathcal{D}$; the inductive hypothesis (IH) may be applied to any
+sub-derivation of $\mathcal{D}$, whose accessor is a strict subterm of $a$.
+
+\textbf{Case V-Eps.} Then $a = \aeps$ and $\tau' = \tau$. Take $j' = j$: we have
+$\evals{(\aeps, j)}{(\aeps, j)}$ in zero steps, and $\matches{j}{\tau'}$ holds by
+assumption.
+
+\textbf{Case V-Key.} Then $a = \akey{s_i}{a_0}$,
+$\tau = \jobj{s_0 : \tau_0, \ldots, s_{k-1}:\tau_{k-1}}$, and the premise is
+$\valid{\tau_i}{a_0}{\tau'}$. Since $\matches{j}{\tau}$, inversion on the
+matching rules forces the last rule to be S-Obj, so
+$j = \jobj{s_0 : j_0, \ldots, s_{k-1} : j_{k-1}}$ with the same keys and
+$\matches{j_l}{\tau_l}$ for every $l$; in particular $\matches{j_i}{\tau_i}$.
+By E-Key, $\steps{(\akey{s_i}{a_0}, j)}{(a_0, j_i)}$. By the IH applied to
+$\valid{\tau_i}{a_0}{\tau'}$ with $\matches{j_i}{\tau_i}$, there is $j'$ with
+$\evals{(a_0, j_i)}{(\aeps, j')}$ and $\matches{j'}{\tau'}$. Prepending the
+single E-Key step gives $\evals{(a, j)}{(\aeps, j')}$.
+
+\textbf{Case V-Idx.} Then $a = \aidx{n}{a_0}$,
+$\tau = \tup{\tau_0, \ldots, \tau_{k-1}}$, and the premises are $0 \le n < k$ and
+$\valid{\tau_n}{a_0}{\tau'}$. By inversion of $\matches{j}{\tau}$ (rule S-Tup),
+$j = \jarr{j_0, \ldots, j_{k-1}}$ with exactly $k$ elements and
+$\matches{j_l}{\tau_l}$ for all $l$; in particular $\matches{j_n}{\tau_n}$ and,
+since $0 \le n < k$, index $n$ is in bounds. By E-Idx,
+$\steps{(\aidx{n}{a_0}, j)}{(a_0, j_n)}$. By the IH on
+$\valid{\tau_n}{a_0}{\tau'}$ with $\matches{j_n}{\tau_n}$, there is $j'$ with
+$\evals{(a_0, j_n)}{(\aeps, j')}$ and $\matches{j'}{\tau'}$. Prepend the E-Idx
+step.
+
+\textbf{Case V-Map.} Then $a = \amap{a_1}{a_2}$, $\tau = \jarr{\tau_0}$ (writing
+the element schema as $\tau_0$), and the premises are
+$\valid{\tau_0}{a_1}{\tau_1}$ and $\valid{\jarr{\tau_1}}{a_2}{\tau'}$. By
+inversion of $\matches{j}{\tau}$ (rule S-Arr), $j = \jarr{j_0, \ldots, j_{k-1}}$
+for some $k \ge 0$ with $\matches{j_i}{\tau_0}$ for every $i$.
+
+For each $i$, apply the IH to the sub-derivation $\valid{\tau_0}{a_1}{\tau_1}$
+(whose accessor $a_1$ is a strict subterm of $a$) with $\matches{j_i}{\tau_0}$:
+we obtain $j_i'$ with $\evals{(a_1, j_i)}{(\aeps, j_i')}$ and
+$\matches{j_i'}{\tau_1}$. These are exactly the premises of E-Map, so
+\[
+  \steps{(\amap{a_1}{a_2}, \jarr{j_0, \ldots, j_{k-1}})}
+        {(a_2, \jarr{j_0', \ldots, j_{k-1}'})}.
+\]
+Moreover $\matches{\jarr{j_0', \ldots, j_{k-1}'}}{\jarr{\tau_1}}$ by S-Arr, since
+every $\matches{j_i'}{\tau_1}$. Now apply the IH to the sub-derivation
+$\valid{\jarr{\tau_1}}{a_2}{\tau'}$ (its accessor $a_2$ is a strict subterm of
+$a$) with this matching: there is $j'$ with
+$\evals{(a_2, \jarr{j_0', \ldots, j_{k-1}'})}{(\aeps, j')}$ and
+$\matches{j'}{\tau'}$. Prepending the single E-Map step yields
+$\evals{(a, j)}{(\aeps, j')}$.
+
+In every case we produced the required $j'$ with $\matches{j'}{\tau'}$, closing
+the induction.
+\end{proof}
+
+\begin{proof}[Proof of Accessor Safety]
+Assume $\matches{a}{\tau}$ and $\matches{j}{\tau}$. By definition of
+$\matches{a}{\tau}$ there is some $\tau'$ with $\valid{\tau}{a}{\tau'}$. Applying
+Lemma~\ref{lem:safe} yields $j'$ with $\evals{(a, j)}{(\aeps, j')}$ (and, as a
+bonus, $\matches{j'}{\tau'}$), which is exactly what the theorem asserts.
 \end{proof}
 
 \end{document}
